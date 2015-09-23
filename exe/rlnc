@@ -1,0 +1,68 @@
+#!/usr/local/bin/ruby
+require 'readline'
+require 'socket'
+
+class Rlnc
+  def self.start(args)
+    obj = self.new
+    hostname, port = obj.parse_args(args)
+    obj.prepare
+    begin
+      obj.run(hostname, port)
+    ensure
+      obj.post_process
+    end
+  end
+
+  def usage(flag)
+    out = flag ? $stdout : $stderr
+    out.puts "Usage: rlnc hostname port"
+    exit flag
+  end
+
+  def parse_args(args)
+    usage false unless args.size == 2
+    args
+  end
+
+  def prepare
+    @histfile = File.expand_path("~/.rlnc_history")
+    @histsize = 0
+    File.open(@histfile, File::RDONLY) do |f|
+      f.each_line do |line|
+        Readline::HISTORY.push line.chomp
+      end
+    end
+    @histsize = Readline::HISTORY.size
+  rescue
+    # ignore
+  end
+
+  def post_process
+    prev = nil
+    File.open(@histfile, "a", 0600) do |f|
+      f.flock(File::LOCK_EX)
+      (@histsize...Readline::HISTORY.size).each do |i|
+        line = Readline::HISTORY[i]
+        f.puts line unless line.empty? || line == prev
+        prev = line
+      end
+    end
+  end
+
+  def run(hostname, port)
+    sock = TCPSocket.new(hostname, port)
+    Thread.new do
+      while true
+        line = Readline.readline('', true)
+        next unless line
+        sock.puts line
+      end
+    end
+    while line = sock.gets
+      puts line
+    end
+  end
+end
+
+Rlnc.start(ARGV) if File.basename($0) == "rlnc"
