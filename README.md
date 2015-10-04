@@ -4,25 +4,17 @@ Netcat with readline.
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'rlnc'
 ```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install rlnc
+$ gem install rlnc
+```
 
 ## Usage
 
 ```
 % rlnc hostname port
 ```
+
+Type Control-C to terminate.
 
 ## Contributing
 
