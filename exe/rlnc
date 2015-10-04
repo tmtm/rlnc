@@ -1,6 +1,6 @@
 #!/usr/local/bin/ruby
-require 'readline'
-require 'socket'
+require "readline"
+require "socket"
 
 class Rlnc
   def self.start(args)
@@ -14,10 +14,15 @@ class Rlnc
     end
   end
 
+  def initialize
+    @histfile = ""
+    @history = []
+  end
+
   def usage(flag)
-    out = flag ? $stdout : $stderr
+    out = flag ? STDOUT : STDERR
     out.puts "Usage: rlnc hostname port"
-    exit flag
+    exit(flag ? 0 : 1)
   end
 
   def parse_args(args)
@@ -27,23 +32,21 @@ class Rlnc
 
   def prepare
     @histfile = File.expand_path("~/.rlnc_history")
-    @histsize = 0
-    File.open(@histfile, File::RDONLY) do |f|
+    File.open(@histfile, "r") do |f|
+      f.flock(File::LOCK_SH)
       f.each_line do |line|
         Readline::HISTORY.push line.chomp
       end
     end
-    @histsize = Readline::HISTORY.size
   rescue
     # ignore
   end
 
   def post_process
     prev = nil
-    File.open(@histfile, "a", 0600) do |f|
+    File.open(@histfile, "a", 0o600) do |f|
       f.flock(File::LOCK_EX)
-      (@histsize...Readline::HISTORY.size).each do |i|
-        line = Readline::HISTORY[i]
+      @history.each do |line|
         f.puts line unless line.empty? || line == prev
         prev = line
       end
@@ -54,9 +57,10 @@ class Rlnc
     sock = TCPSocket.new(hostname, port)
     Thread.new do
       while true
-        line = Readline.readline('', true)
+        line = Readline.readline("", true)
         next unless line
         sock.puts line
+        @history.push line
       end
     end
     while line = sock.gets
