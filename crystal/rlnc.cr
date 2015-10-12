@@ -56,17 +56,32 @@ class Rlnc
 
   def run(hostname, port)
     sock = TCPSocket.new(hostname, port)
-    spawn do
+    r, w = IO.pipe
+    child = Process.fork do
+      r.close
       while true
         line = Readline.readline("", true)
         next unless line
         sock.puts line
+        w.puts line
+      end
+    end
+    Signal::INT.trap do
+      child.kill
+    end
+    w.close
+    spawn do
+      while line = r.gets
         @history.push line
       end
     end
-    while line = sock.gets
-      puts line
+    spawn do
+      while line = sock.gets
+        puts line
+      end
+      child.kill
     end
+    child.wait
   end
 end
 
