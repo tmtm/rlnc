@@ -34,7 +34,8 @@ class Rlnc
     File.open(@histfile, "r") do |f|
       f.flock_shared do
         f.each_line do |line|
-          LibReadline.add_history line.chomp
+          @last_line = line.chomp
+          LibReadline.add_history @last_line.to_s
         end
       end
     end
@@ -43,7 +44,7 @@ class Rlnc
   end
 
   def post_process
-    prev = nil
+    prev = @last_line
     File.open(@histfile, "a", 0o600) do |f|
       f.flock_exclusive do
         @history.each do |line|
@@ -72,7 +73,7 @@ class Rlnc
     w.close
     spawn do
       while line = r.gets
-        @history.push line
+        @history.push line.chomp
       end
     end
     spawn do

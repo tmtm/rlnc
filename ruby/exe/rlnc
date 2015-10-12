@@ -35,6 +35,7 @@ class Rlnc
     File.open(@histfile, "r") do |f|
       f.flock(File::LOCK_SH)
       f.each_line do |line|
+        @last_line = line.chomp
         Readline::HISTORY.push line.chomp
       end
     end
@@ -43,7 +44,7 @@ class Rlnc
   end
 
   def post_process
-    prev = nil
+    prev = @last_line
     File.open(@histfile, "a", 0o600) do |f|
       f.flock(File::LOCK_EX)
       @history.each do |line|
